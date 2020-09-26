@@ -35,9 +35,22 @@ class Import
 
   def build_document_attributes(row)
     row.map do |label, value|
-      field_name, _value_type = label.split(":")
-      [field_name, value]
+      field_name, value_type, reference_collection = label.split(":")
+      [field_name, convert_value_type(value, value_type, reference_collection)]
     end.to_h
+  end
+
+  def convert_value_type(value, value_type, reference_collection)
+    return value if value.to_s.empty?
+
+    case value_type&.to_sym
+    when :integer
+      value.to_i
+    when :reference
+      @firestore.document("#{reference_collection}/#{value}")
+    else
+      value
+    end
   end
 end
 
