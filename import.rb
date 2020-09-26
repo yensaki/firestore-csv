@@ -28,8 +28,8 @@ class Import
     end
 
     csv = CSV.read("./fixtures/#{filename}", headers: true)
-    csv.each.with_index(1) do |row, index|
-      collection.doc("#{index}").create(build_document_attributes(row)) rescue nil
+    csv.each do |row|
+      collection.doc(row["id"]).create(build_document_attributes(row))
     end
   end
 
