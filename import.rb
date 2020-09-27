@@ -22,15 +22,23 @@ class Import
   private
 
   def update_collection(collection_name, filename)
-    collection = @firestore.collection(collection_name)
-    collection.list_documents.each do |document|
-      document.delete
+    @firestore.transaction do |transaction|
+      ids = []
+      csv = CSV.read("./fixtures/#{filename}", headers: true)
+      csv.each do |row|
+        attributes = build_document_attributes(row)
+        transaction.set("#{collection_name}/#{attributes["id"]}", attributes)
+        ids << attributes["id"].to_s
+      end
+      all_ids = []
+      @firestore.collection(collection_name).list_documents.all.each { |doc_ref| all_ids << doc_ref.document_id }
+      delete_ids = (all_ids - ids)
+      delete_ids.each do |delete_id|
+        transaction.delete("#{collection_name}/#{delete_id}")
+      end
     end
-
-    csv = CSV.read("./fixtures/#{filename}", headers: true)
-    csv.each do |row|
-      collection.doc(row["id"]).create(build_document_attributes(row))
-    end
+    puts "#{collection_name} done"
+    sleep(3)
   end
 
   def build_document_attributes(row)
